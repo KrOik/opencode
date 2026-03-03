@@ -856,6 +856,25 @@ export namespace MessageV2 {
           },
           { cause: e },
         ).toObject()
+      case (e as SystemError)?.code === "CERT_AUTHORITY_INVALID" ||
+        (e as SystemError)?.code === "CERT_HAS_EXPIRED" ||
+        (e as SystemError)?.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+        (e as SystemError)?.code === "DEPTH_ZERO_SELF_SIGNED_CERT" ||
+        (e as SystemError)?.code === "SELF_SIGNED_CERT_IN_CHAIN" ||
+        (e as SystemError)?.code === "ERR_TLS_CERT_ALTNAME_INVALID" ||
+        ((e as SystemError)?.code === "UNKNOWN" && (e as SystemError)?.message?.toLowerCase().includes("certificate")):
+        return new MessageV2.APIError(
+          {
+            message: `Certificate verification failed: ${(e as SystemError).message}. This may be caused by a proxy, VPN, or corporate network. Try disabling them or check your system certificates.`,
+            isRetryable: false,
+            metadata: {
+              code: (e as SystemError).code ?? "",
+              syscall: (e as SystemError).syscall ?? "",
+              message: (e as SystemError).message ?? "",
+            },
+          },
+          { cause: e },
+        ).toObject()
       case APICallError.isInstance(e):
         const parsed = ProviderError.parseAPICallError({
           providerID: ctx.providerID,
